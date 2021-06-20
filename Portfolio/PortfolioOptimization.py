@@ -27,22 +27,32 @@ class PortfolioOptimization:
 
         self.cost_for_tickers = closing_values[-1]
 
-    def get_best_ticker_combination(self, max_position=5000, epochs=1000, alpha=1, learning_rate=0.1,
-                                    start_units=5, sample_period=1, l1_reg=0, save_training_history=False):
+    def get_best_ticker_combination(self, max_market_value=5000, epochs=1000, alpha=1.0, learning_rate=0.1,
+                                    start_units=5, sample_period=1.0, l1_reg=0.0, save_training_history=False):
         """ Returns the number of units per ticker that will minimise the cost function
             std^2 + alpha * mu
             where std is the standard deviation of the log-returns, and mu is the mean of the log-returns
 
             Parameters
             ----------
-            tickers : list of str
-                List of the tickers
-            closing_values : np.array
-                np.array of the closing prices of the tickers
-            max_position : float
-                The max position for 1 ticker
+            max_market_value : float
+                The max market value for 1 ticker
             sample_period : float between 0 and 1, optional
                 The period of time to optimize the portfolio on
+            epochs : int, optional
+                Number of times to perform gradient descent
+            alpha : float, optional
+                Weight on the averaged returns
+            learning_rate : float, optional
+                The learning rate
+            start_units : int, optional
+                The number of units to start the gradient descent
+            sample_period : float between 0 and 1, optional
+                The period of time to optimize the portfolio on
+            l1_reg : float, optional
+                L1-Regularization strength on the number of units
+            save_training_history : bool, optional
+                If true then the weights on the tickers will be returned as well
         """
 
         N = int(len(self.closing_values) * sample_period)
@@ -52,7 +62,7 @@ class PortfolioOptimization:
         else:
             in_sample_portfolio_close = self.current_portfolio_close[:N]
 
-        max_unit_for_tickers = max_position // self.closing_values[-1]
+        max_unit_for_tickers = max_market_value // self.closing_values[-1]
 
         results = self._gradient_descent(in_sample_portfolio_close, in_sample_closing_values,
                                          max_unit_for_tickers, epochs=epochs, alpha=alpha,
@@ -75,8 +85,8 @@ class PortfolioOptimization:
         return ticker_combination_as_df
 
     @staticmethod
-    def _gradient_descent(current_portfolio_close, closing_values, max_unit_for_tickers, epochs=1000, alpha=1,
-                          learning_rate=0.1, start_units=5, l1_reg=0, save_training_history=False):
+    def _gradient_descent(current_portfolio_close, closing_values, max_unit_for_tickers, epochs=1000, alpha=1.0,
+                          learning_rate=0.1, start_units=5, l1_reg=0.0, save_training_history=False):
         """ Peforms gradient descent to find the best unit combinations """
         num_of_tickers = closing_values.shape[1]
 

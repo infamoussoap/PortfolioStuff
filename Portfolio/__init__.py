@@ -2,4 +2,4 @@ from .Portfolio import Portfolio
 from .Portfolio import SimplifiedPortfolio
 
 from .PortfolioOptimization import PortfolioOptimization
-from .ContrainedPortfolioOptimization import ConstrainedPortfolioOptimization
+from .ConstrainedPortfolioOptimization import ConstrainedPortfolioOptimization

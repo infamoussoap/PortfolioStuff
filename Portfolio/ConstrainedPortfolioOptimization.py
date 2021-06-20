@@ -34,8 +34,8 @@ class ConstrainedPortfolioOptimization:
         self.cost_for_tickers = closing_values[-1]
 
     def get_best_ticker_combination(self, max_portfolio_value, epochs=1000,
-                                    alpha=1, learning_rate=0.1, start_units=5, sample_period=1,
-                                    l1_reg=0, save_training_history=False):
+                                    alpha=1.0, learning_rate=0.1, start_units=5, sample_period=1.0,
+                                    l1_reg=0.0, save_training_history=False):
         """ Returns the number of units per ticker that will minimise the cost function
             std^2 - alpha * mu
             where std is the standard deviation of the log-returns, and mu is the mean of the log-returns
@@ -91,8 +91,8 @@ class ConstrainedPortfolioOptimization:
 
     @staticmethod
     def _projected_gradient_descent(current_portfolio_close, closing_values, max_portfolio_value,
-                                    cost_for_tickers, epochs=1000, alpha=1, learning_rate=0.1, start_units=1,
-                                    l1_reg=0, save_training_history=False):
+                                    cost_for_tickers, epochs=1000, alpha=1.0, learning_rate=0.1, start_units=1,
+                                    l1_reg=0.0, save_training_history=False):
 
         CPO = ConstrainedPortfolioOptimization
 
@@ -167,8 +167,8 @@ class ConstrainedPortfolioOptimization:
 
     @staticmethod
     def _is_valid_weights(weights, total_amount, closing_prices, e=1e-6):
-        """ Weights are only valid if they are all positive, and the weighted sum is <= the total amount """
-        return np.all(weights > -e) and np.sum(weights * closing_prices) <= total_amount + e
+        """ Weights are only valid if they are all positive, and the weighted sum is = the total amount """
+        return np.all(weights > -e) and abs(np.sum(weights * closing_prices) - total_amount) < e
 
     @staticmethod
     def _project_weights(current_weights, closing_prices, plane_end_points):

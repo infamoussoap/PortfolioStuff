@@ -151,7 +151,7 @@ class Portfolio:
 
         # If ticker is a list, send it to the other method
         if isinstance(ticker, list):
-            return ValueError('ticker can no longer be a list of string')
+            raise ValueError('ticker can no longer be a list of string')
 
         new_portfolio = self.portfolio.copy()
         if ticker in new_portfolio:
@@ -159,7 +159,7 @@ class Portfolio:
         else:
             new_portfolio[ticker] = self._get_position(ticker, position_value, ticker_prices=ticker_prices)
 
-        return Portfolio(new_portfolio, ticker_prices, name=name)
+        return Portfolio(new_portfolio, start=self.start, end=self.end, ticker_prices=ticker_prices, name=name)
 
     def add_tickers_to_portfolio(self, tickers, market_values, ticker_prices=None, name=None):
         """ Returns the new portfolio when the new tickers are added
@@ -182,7 +182,7 @@ class Portfolio:
             else:
                 new_portfolio[ticker] = self._get_position(ticker, market_value, ticker_prices=ticker_prices)
 
-        return Portfolio(new_portfolio, ticker_prices, name=name)
+        return Portfolio(new_portfolio, start=self.start, end=self.end, ticker_prices=ticker_prices, name=name)
 
     def _get_position(self, ticker, market_value, ticker_prices=None):
         """ For a given ticker, return the number of own units given the total position value """
@@ -197,7 +197,8 @@ class Portfolio:
 
 
 class SimplifiedPortfolio:
-    """ Simplified Portfolio only looks at the close column
+    """ Simplified Portfolio only looks at the close column, in contrast Portfolio maintains information
+        about the high, low, open, close, and volume
 
         Attributes
         ----------
@@ -256,6 +257,9 @@ class SimplifiedPortfolio:
             name : str, optional
                 The name of the new portfolio
         """
+        # If ticker is a list, send it to the other method
+        if isinstance(ticker, list):
+            raise ValueError('ticker can no longer be a list of string')
 
         new_portfolio = self.portfolio.copy()
         if ticker in new_portfolio:
@@ -290,7 +294,8 @@ class SimplifiedPortfolio:
             else:
                 new_portfolio[ticker] = self._get_position(ticker, market_value, ticker_prices=ticker_prices)
 
-        return SimplifiedPortfolio(new_portfolio, ticker_prices, name=name)
+        return SimplifiedPortfolio(new_portfolio, start=self.start, end=self.end, ticker_prices=ticker_prices,
+                                   name=name)
 
     def _get_position(self, ticker, market_value, ticker_prices=None):
         """ For a given ticker, return the number of own units given the total position value """
