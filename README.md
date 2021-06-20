@@ -19,7 +19,7 @@ is the most optimal portfolio one can have that both minimise the volatility, an
 ### Portfolio Optimization
 This project is not that. The efficient frontier requires one to be actively buying and selling the shares one owns. I,
 on the other hand, have no interest in selling the shares I own. Given my current portfolio, I want it to find how much
-of a given stock I should buy to minimise the volatility and maximise returns of the portfolio.
+of a given stock I should buy to minimise the volatility and maximise returns of the portfolio. No selling.
 
 While I have written code for this, I do believe that you can simply use the efficient frontier for this. Some sleight
 of hand will be required, though.
@@ -28,8 +28,8 @@ of hand will be required, though.
 It is really the constrained portfolio optimization that I am interested in. 
 
 As an individual investor, I do not have limitless amounts of money to re-balance my portfolio, unlike institutional 
-investors. I only have a fixed amount, say $1,000, to invest with. The new problem is then, given I only have $1,000
-what is the combination of stocks I can buy to minimise the volatility and maximise the returns.
+investors. Suppose I only have a fixed amount, say $1,000, to invest with. The new problem is then: given I only have 
+$1,000, what is the best combination of stocks I can buy to minimise the volatility and maximise the returns.
 
 From my 1 minute of research, I have not seen anyone else do this, but I'm most likely very wrong. I also don't really
 see how one can alter the efficient frontier to solve this problem.
@@ -40,6 +40,10 @@ install `yfinance`
 
 The main packages are: `numpy, pandas, yfinance, datetime`
 
-### 
-Some understanding of gradient descent would be good, in particular the understanding of epochs, learning rate, and
-learning how to see if you have convergence
+### Math Knowledge
+While math knowledge isn't required to run the code, it would be good to understand brief details on gradient
+descent, so you know if the algorithm has converged to the optimal portfolio. If not, one may end up with a situation
+where the returned portfolio is sub-optimal.
+
+In particular the understanding of epochs, learning rate, and learning how to see if you have convergence in 
+gradient descent should be enough for the math details.
