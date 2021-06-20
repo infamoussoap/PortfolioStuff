@@ -2,6 +2,12 @@ import numpy as np
 import pandas as pd
 import warnings
 
+from .TickerHistory import get_buffered_closing_for_tickers
+
+from datetime import date
+START_DATE = date(2017, 1, 5)
+END_DATE = date(2021, 6, 10)
+
 
 class ConstrainedPortfolioOptimization:
     """ In the Constrained Portfolio Optimization the aim is now to minimise(variance - alpha * mean)
@@ -13,25 +19,35 @@ class ConstrainedPortfolioOptimization:
         of the j-th stock.
     """
 
-    def __init__(self, tickers, closing_values, current_portfolio_close=None):
+    def __init__(self, tickers, closing_values=None, ticker_prices=None, start=START_DATE, end=END_DATE,
+                 current_portfolio_close=None):
         """ Set closing prices of tickers / current portfolio
 
             Parameters
             ----------
             tickers : list of str - length j
                 List of the ticker symbols to be optimized over
-            closing_values : (n, j) np.array
+            closing_values : (n, j) np.array, optional
                 Closing values of the tickers
-                Note that
+                If not given, then it will be retrieved from the internet
+            ticker_prices : dict of str - pd.DataFrame
+                Keys of tickers, and values of yf.Ticker.history
+            start : datetime.date
+            end : datetime.date
             current_portfolio_close : (n,) np.array, optional
                 The closing prices of your current portfolio. If one doesn't exist, then set to 0
         """
 
         self.tickers = tickers
-        self.closing_values = closing_values
+        if closing_values is not None:
+            self.closing_values = closing_values
+        else:
+            closing_values = get_buffered_closing_for_tickers(tickers, start, end, ticker_prices=ticker_prices)
+            self.closing_values = closing_values.values
+
         self.current_portfolio_close = current_portfolio_close
 
-        self.cost_for_tickers = closing_values[-1]
+        self.cost_for_tickers = self.closing_values[-1]
 
     def get_best_ticker_combination(self, max_portfolio_value, epochs=1000,
                                     alpha=1.0, learning_rate=0.1, start_units=5, sample_period=1.0,
