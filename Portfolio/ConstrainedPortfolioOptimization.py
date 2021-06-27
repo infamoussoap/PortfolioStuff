@@ -39,7 +39,7 @@ class ConstrainedPortfolioOptimization:
                 The closing prices of your current portfolio. If one doesn't exist, then set to 0
         """
 
-        self.tickers = tickers
+        self.tickers = list(set(tickers))
         if closing_values is not None:
             self.closing_values = closing_values
         else:
