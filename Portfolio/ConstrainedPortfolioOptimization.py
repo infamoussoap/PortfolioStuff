@@ -3,6 +3,7 @@ import pandas as pd
 import warnings
 
 from .TickerHistory import get_buffered_closing_for_tickers
+from .ValueChecks import check_for_incomplete_ticker_closing
 
 from datetime import date
 START_DATE = date(2017, 1, 5)
@@ -44,6 +45,8 @@ class ConstrainedPortfolioOptimization:
         else:
             closing_values = get_buffered_closing_for_tickers(tickers, start, end, ticker_prices=ticker_prices)
             self.closing_values = closing_values.values
+
+        check_for_incomplete_ticker_closing(self.tickers, self.closing_values)
 
         self.current_portfolio_close = current_portfolio_close
 
@@ -108,7 +111,7 @@ class ConstrainedPortfolioOptimization:
     @staticmethod
     def _projected_gradient_descent(current_portfolio_close, closing_values, max_portfolio_value,
                                     cost_for_tickers, epochs=1000, alpha=1.0, learning_rate=0.1, start_units=1,
-                                    l1_reg=0.0, save_training_history=False):
+                                    l1_reg=0.0, save_training_history=False, e=1e-7):
 
         CPO = ConstrainedPortfolioOptimization
 
@@ -125,9 +128,10 @@ class ConstrainedPortfolioOptimization:
                                                       current_ticker_units, alpha)
             l1_gradient = l1_reg * (current_ticker_units > 0).astype(int)
 
-            # RMSprop
+            # RMSprop - Normal gradient descent tends to take a very long time, can probably
+            # use Adam for quicker convergence
             grad_squared = 0.9 * grad_squared + 0.1 * gradient * gradient
-            current_ticker_units -= learning_rate * (gradient / np.sqrt(grad_squared) + l1_gradient)
+            current_ticker_units -= learning_rate * (gradient / (np.sqrt(grad_squared) + e) + l1_gradient)
 
             # Project back into space
             current_ticker_units = CPO._project_weights_into_constraint(current_ticker_units,
