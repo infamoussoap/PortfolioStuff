@@ -43,7 +43,7 @@ class ConstrainedPortfolioOptimization:
         if closing_values is not None:
             self.closing_values = closing_values
         else:
-            closing_values = get_buffered_closing_for_tickers(tickers, start, end, ticker_prices=ticker_prices)
+            closing_values = get_buffered_closing_for_tickers(self.tickers, start, end, ticker_prices=ticker_prices)
             self.closing_values = closing_values.values
 
         check_for_incomplete_ticker_closing(self.tickers, self.closing_values)
