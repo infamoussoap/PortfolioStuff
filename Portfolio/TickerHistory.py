@@ -31,7 +31,7 @@ def get_buffered_history_for_tickers(tickers, start, end, ticker_prices=None):
 
     if len(invalid_tickers) > 0:
         warnings.warn('Portfolio only works if the tickers have values for the start to end dates. These'
-                      + f' tickers do not: {invalid_tickers}')
+                      + ' tickers do not: ' + str(invalid_tickers))
     return buffered_ticker_history
 
 
@@ -60,7 +60,6 @@ def get_buffered_history(ticker, days, columns, start, end, ticker_prices=None):
     buffered_history.loc[shared_days] = history.loc[shared_days]
     buffered_history.fillna(method='ffill', inplace=True)
 
-    is_close_na = buffered_history['Close'].isna()
-    if is_close_na.values.sum() > 0:
-        return None
+    buffered_history.fillna(0, inplace=True)
+
     return buffered_history
