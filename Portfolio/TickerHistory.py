@@ -1,5 +1,4 @@
 import pandas as pd
-import warnings
 
 import yfinance as yf
 
@@ -29,9 +28,6 @@ def get_buffered_history_for_tickers(tickers, start, end, ticker_prices=None):
         else:
             buffered_ticker_history[ticker] = buffered_history
 
-    if len(invalid_tickers) > 0:
-        warnings.warn('Portfolio only works if the tickers have values for the start to end dates. These'
-                      + ' tickers do not: ' + str(invalid_tickers))
     return buffered_ticker_history
 
 
