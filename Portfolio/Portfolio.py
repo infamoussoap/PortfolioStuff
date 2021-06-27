@@ -14,7 +14,7 @@ END_DATE = date(2021, 6, 10)
 class Portfolio:
     count = 0
 
-    def __init__(self, portfolio, start=START_DATE, end=END_DATE, ticker_prices=None, name=None):
+    def __init__(self, portfolio, start=START_DATE, end=END_DATE, ticker_prices=None, name=None, e=1e-7):
         """
             Parameters
             ----------
@@ -45,7 +45,7 @@ class Portfolio:
         self.portfolio_history = reduce(lambda x, y: x + y, weighted_history)
         self.close = self.portfolio_history['Close']
 
-        returns = np.log(self.close.values[1:] / self.close.values[:-1]) * 100
+        returns = np.log(self.close.values[1:] / (self.close.values[:-1] + e) + e) * 100
         self.returns = pd.DataFrame(returns, index=self.portfolio_history.index[1:], columns=['Portfolio'])
 
         Portfolio.count += 1
