@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 from functools import reduce
@@ -134,11 +136,15 @@ class Portfolio:
     def _get_position(self, ticker, market_value, ticker_prices=None):
         """ For a given ticker, return the number of own units given the total position value """
         if ticker_prices is not None and ticker in ticker_prices:
-            latest_price = ticker_prices[ticker]['Close'].iloc[-1]
+            ticker_closing_prices = ticker_prices[ticker]['Close']
         else:
-            start = self.end - timedelta(days=1)
+            start = self.end - timedelta(days=7)
             ticker_history = yf.Ticker(ticker).history(start=start, end=self.end)
-            latest_price = ticker_history['Close'].iloc[-1]
+            ticker_closing_prices = ticker_history['Close']
+            if len(ticker_closing_prices) == 0:
+                raise ValueError(f"{ticker} has no history in the range {start} to {self.end}.")
+
+        latest_price = ticker_closing_prices.iloc[-1]
 
         return int(market_value / latest_price)
 
