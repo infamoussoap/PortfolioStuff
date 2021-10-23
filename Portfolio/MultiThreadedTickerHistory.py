@@ -17,7 +17,7 @@ def get_buffered_closing_for_tickers(tickers, start, end, max_workers=100):
     return closing_prices
 
 
-def get_buffered_ticker_history(tickers, start, end, max_workers=100):
+def get_buffered_history_for_tickers(tickers, start, end, max_workers=100):
     """ Tickers only with values from the start to end dates will be kept.
 
         A warning will be raised if a ticker does not have values from the start
@@ -54,12 +54,12 @@ def get_ticker_history(tickers, start_date, end_date, max_workers=100):
     return ticker_history
 
 
-def update_ticker_history(ticker_history, ticker, start_date, end_date):
-    ticker = yf.Ticker(ticker)
+def update_ticker_history(ticker_history, ticker_sym, start_date, end_date):
+    ticker = yf.Ticker(ticker_sym)
     history = ticker.history(start=start_date, end=end_date)
     
     with LOCK:
-        ticker_history[ticker] = history
+        ticker_history[ticker_sym] = history
         
 
 def get_asx_default_days_and_columns(start, end):
