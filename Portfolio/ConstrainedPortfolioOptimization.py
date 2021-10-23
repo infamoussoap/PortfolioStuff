@@ -20,7 +20,7 @@ class ConstrainedPortfolioOptimization:
         of the j-th stock.
     """
 
-    def __init__(self, tickers, closing_values=None, ticker_prices=None, start=START_DATE, end=END_DATE,
+    def __init__(self, tickers, closing_values=None, start=START_DATE, end=END_DATE,
                  current_portfolio_close=None):
         """ Set closing prices of tickers / current portfolio
 
@@ -31,8 +31,6 @@ class ConstrainedPortfolioOptimization:
             closing_values : (n, j) np.array, optional
                 Closing values of the tickers
                 If not given, then it will be retrieved from the internet
-            ticker_prices : dict of str - pd.DataFrame
-                Keys of tickers, and values of yf.Ticker.history
             start : datetime.date
             end : datetime.date
             current_portfolio_close : (n,) np.array, optional
@@ -43,7 +41,7 @@ class ConstrainedPortfolioOptimization:
         if closing_values is not None:
             self.closing_values = closing_values
         else:
-            closing_values = get_buffered_closing_for_tickers(self.tickers, start, end, ticker_prices=ticker_prices)
+            closing_values = get_buffered_closing_for_tickers(self.tickers, start, end)
             self.closing_values = closing_values.values
 
         check_for_incomplete_ticker_closing(self.tickers, self.closing_values)
