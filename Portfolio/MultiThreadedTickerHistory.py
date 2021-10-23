@@ -9,7 +9,7 @@ LOCK = threading.Lock()
 
 
 def get_buffered_closing_for_tickers(tickers, start, end, max_workers=100):
-    buffered_ticker_history = get_buffered_ticker_history(tickers, start, end, max_workers=max_workers)
+    buffered_ticker_history = get_buffered_history_for_tickers(tickers, start, end, max_workers=max_workers)
 
     closing_prices = pd.concat([history.loc[:, 'Close'] for history in buffered_ticker_history.values()], axis=1)
     closing_prices.columns = list(buffered_ticker_history.keys())
