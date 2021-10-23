@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import warnings
 
-from .TickerHistory import get_buffered_closing_for_tickers
+from .MultiThreadedTickerHistory import get_buffered_closing_for_tickers
 from .ValueChecks import check_for_incomplete_ticker_closing
 
 from datetime import date
