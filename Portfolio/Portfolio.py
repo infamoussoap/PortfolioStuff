@@ -6,7 +6,7 @@ from functools import reduce
 
 import yfinance as yf
 
-from .TickerHistory import get_buffered_history_for_tickers
+from .MultiThreadedTickerHistory import get_buffered_history_for_tickers
 
 from datetime import date, timedelta
 START_DATE = date(2017, 1, 5)
