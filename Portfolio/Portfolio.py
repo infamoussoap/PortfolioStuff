@@ -16,7 +16,7 @@ END_DATE = date(2021, 6, 10)
 class Portfolio:
     count = 0
 
-    def __init__(self, portfolio, start=START_DATE, end=END_DATE, ticker_prices=None, name=None, e=1e-7):
+    def __init__(self, portfolio, start=START_DATE, end=END_DATE, name=None, e=1e-7):
         """
             Parameters
             ----------
@@ -26,10 +26,6 @@ class Portfolio:
                 The start date
             end : datetime.date
                 The end date
-            ticker_prices : dict of str - pd.DataFrame, optional
-                This essentially should be the cached ticker_history as given from yf.Ticker.history.
-                If it is given then ticker_prices will be used to get the historic prices of tickers.
-                Otherwise the prices will require the internet to get the historic prices
             name : str, optional
                 The name for the portfolio
         """
@@ -39,8 +35,7 @@ class Portfolio:
         self.end = end
 
         tickers = list(self.portfolio.keys())
-        buffered_ticker_history = get_buffered_history_for_tickers(tickers, start, end,
-                                                                   ticker_prices=ticker_prices)
+        buffered_ticker_history = get_buffered_history_for_tickers(tickers, start, end)
 
         weighted_history = [history * portfolio[ticker] for ticker, history in buffered_ticker_history.items()]
 
@@ -80,7 +75,7 @@ class Portfolio:
         else:
             raise ValueError('Only proxy 1, 2, 3 is implemented')
 
-    def add_ticker_to_portfolio(self, ticker, position_value, ticker_prices=None, name=None):
+    def add_ticker_to_portfolio(self, ticker, position_value, name=None):
         """ Returns the new portfolio when the ticker is added
 
             The number of units of the new ticker is computed based on the position_value that one
@@ -91,9 +86,6 @@ class Portfolio:
             ticker: str
             position_value: float/int
                 The total market value (in dollars) one wants to take into the ticker
-            ticker_prices: dict of str - pd.DataFrame, optional
-                The historic prices of all tickers, with keys assumed to be the tickers and values
-                DataFrames give by yf.Ticker.history
             name : str, optional
                 The name for the new portfolio
         """
@@ -104,13 +96,13 @@ class Portfolio:
 
         new_portfolio = self.portfolio.copy()
         if ticker in new_portfolio:
-            new_portfolio[ticker] += self._get_position(ticker, position_value, ticker_prices=ticker_prices)
+            new_portfolio[ticker] += self._get_position(ticker, position_value)
         else:
-            new_portfolio[ticker] = self._get_position(ticker, position_value, ticker_prices=ticker_prices)
+            new_portfolio[ticker] = self._get_position(ticker, position_value)
 
-        return Portfolio(new_portfolio, start=self.start, end=self.end, ticker_prices=ticker_prices, name=name)
+        return Portfolio(new_portfolio, start=self.start, end=self.end, name=name)
 
-    def add_tickers_to_portfolio(self, tickers, market_values, ticker_prices=None, name=None):
+    def add_tickers_to_portfolio(self, tickers, market_values, name=None):
         """ Returns the new portfolio when the new tickers are added
 
             Parameters
@@ -118,8 +110,6 @@ class Portfolio:
             tickers : list of str
             market_values : np.array (or array like)
                 The market value for the individual tickers
-            ticker_prices : dict of str - pd.DataFrame, optional
-                If not given, then the historic prices will be retrived from the internet
             name : str, optional
                 The name of the new portfolio
         """
@@ -127,22 +117,19 @@ class Portfolio:
 
         for ticker, market_value in zip(tickers, market_values):
             if ticker in new_portfolio:
-                new_portfolio[ticker] += self._get_position(ticker, market_value, ticker_prices=ticker_prices)
+                new_portfolio[ticker] += self._get_position(ticker, market_value)
             else:
-                new_portfolio[ticker] = self._get_position(ticker, market_value, ticker_prices=ticker_prices)
+                new_portfolio[ticker] = self._get_position(ticker, market_value)
 
-        return Portfolio(new_portfolio, start=self.start, end=self.end, ticker_prices=ticker_prices, name=name)
+        return Portfolio(new_portfolio, start=self.start, end=self.end, name=name)
 
-    def _get_position(self, ticker, market_value, ticker_prices=None):
+    def _get_position(self, ticker, market_value):
         """ For a given ticker, return the number of own units given the total position value """
-        if ticker_prices is not None and ticker in ticker_prices:
-            ticker_closing_prices = ticker_prices[ticker]['Close']
-        else:
-            start = self.end - timedelta(days=7)
-            ticker_history = yf.Ticker(ticker).history(start=start, end=self.end)
-            ticker_closing_prices = ticker_history['Close']
-            if len(ticker_closing_prices) == 0:
-                raise ValueError(f"{ticker} has no history in the range {start} to {self.end}.")
+        start = self.end - timedelta(days=7)
+        ticker_history = yf.Ticker(ticker).history(start=start, end=self.end)
+        ticker_closing_prices = ticker_history['Close']
+        if len(ticker_closing_prices) == 0:
+            raise ValueError(f"{ticker} has no history in the range {start} to {self.end}.")
 
         latest_price = ticker_closing_prices.iloc[-1]
 
@@ -168,7 +155,7 @@ class SimplifiedPortfolio:
     """
     count = 0
 
-    def __init__(self, portfolio, start=START_DATE, end=END_DATE, ticker_prices=None, name=None):
+    def __init__(self, portfolio, start=START_DATE, end=END_DATE, name=None):
         """
             Parameters
             ----------
@@ -181,8 +168,7 @@ class SimplifiedPortfolio:
         self.end = end
 
         tickers = list(self.portfolio.keys())
-        buffered_ticker_history = get_buffered_history_for_tickers(tickers, start, end,
-                                                                   ticker_prices=ticker_prices)
+        buffered_ticker_history = get_buffered_history_for_tickers(tickers, start, end)
 
         weighted_close = [history.loc[:, 'Close'] * portfolio[ticker]
                           for ticker, history in buffered_ticker_history.items()]
@@ -193,7 +179,7 @@ class SimplifiedPortfolio:
         SimplifiedPortfolio.count += 1
         self.name = f'SimplifiedPortfolio {SimplifiedPortfolio.count}' if name is None else name
 
-    def add_ticker_to_portfolio(self, ticker, market_value, ticker_prices=None, name=None):
+    def add_ticker_to_portfolio(self, ticker, market_value, name=None):
         """ Returns the new portfolio when the ticker is added
 
             The number of units of the new ticker is computed based on the position_value that one
@@ -204,9 +190,6 @@ class SimplifiedPortfolio:
             ticker: str
             market_value: float/int
                 The total position (in dollars) one wants to take into the ticker
-            ticker_prices: dict of str - pd.DataFrame, optional
-                The historic prices of all tickers, with keys assumed to be the tickers and values
-                DataFrames give by yf.Ticker.history
             name : str, optional
                 The name of the new portfolio
         """
@@ -216,13 +199,13 @@ class SimplifiedPortfolio:
 
         new_portfolio = self.portfolio.copy()
         if ticker in new_portfolio:
-            new_portfolio[ticker] += self._get_position(ticker, market_value, ticker_prices=ticker_prices)
+            new_portfolio[ticker] += self._get_position(ticker, market_value)
         else:
-            new_portfolio[ticker] = self._get_position(ticker, market_value, ticker_prices=ticker_prices)
+            new_portfolio[ticker] = self._get_position(ticker, market_value)
 
-        return SimplifiedPortfolio(new_portfolio, ticker_prices, name=name)
+        return SimplifiedPortfolio(new_portfolio, name=name)
 
-    def add_tickers_to_portfolio(self, tickers, market_values, ticker_prices=None, name=None):
+    def add_tickers_to_portfolio(self, tickers, market_values, name=None):
         """ Returns the new portfolio when the ticker is added
 
             The number of units of the new ticker is computed based on the position_value that one
@@ -233,9 +216,6 @@ class SimplifiedPortfolio:
             tickers: list of str
             market_values: list (or array like) of float/int
                 The total position (in dollars) one wants to take into the ticker
-            ticker_prices: dict of str - pd.DataFrame, optional
-                The historic prices of all tickers, with keys assumed to be the tickers and values
-                DataFrames give by yf.Ticker.history
             name : str, optional
                 The name of the new portfolio
         """
@@ -243,20 +223,17 @@ class SimplifiedPortfolio:
 
         for ticker, market_value in zip(tickers, market_values):
             if ticker in new_portfolio:
-                new_portfolio[ticker] += self._get_position(ticker, market_value, ticker_prices=ticker_prices)
+                new_portfolio[ticker] += self._get_position(ticker, market_value)
             else:
-                new_portfolio[ticker] = self._get_position(ticker, market_value, ticker_prices=ticker_prices)
+                new_portfolio[ticker] = self._get_position(ticker, market_value)
 
-        return SimplifiedPortfolio(new_portfolio, start=self.start, end=self.end, ticker_prices=ticker_prices,
-                                   name=name)
+        return SimplifiedPortfolio(new_portfolio, start=self.start, end=self.end, name=name)
 
-    def _get_position(self, ticker, market_value, ticker_prices=None):
+    def _get_position(self, ticker, market_value):
         """ For a given ticker, return the number of own units given the total position value """
-        if ticker_prices is not None and ticker in ticker_prices:
-            latest_price = ticker_prices[ticker]['Close'].iloc[-1]
-        else:
-            start = self.end - timedelta(days=1)
-            ticker_history = yf.Ticker(ticker).history(start=start, end=self.end)
-            latest_price = ticker_history['Close'].iloc[-1]
+        
+        start = self.end - timedelta(days=1)
+        ticker_history = yf.Ticker(ticker).history(start=start, end=self.end)
+        latest_price = ticker_history['Close'].iloc[-1]
 
         return int(market_value / latest_price)
