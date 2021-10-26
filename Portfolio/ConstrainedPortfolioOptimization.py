@@ -37,13 +37,17 @@ class ConstrainedPortfolioOptimization:
                 The closing prices of your current portfolio. If one doesn't exist, then set to 0
         """
 
-        self.tickers = list(set(tickers))
+        unique_tickers = list(set(tickers))
         if closing_values is not None:
             self.closing_values = closing_values
+            self.tickers = tickers
         else:
-            closing_values = get_buffered_closing_for_tickers(self.tickers, start, end)
+            closing_values = get_buffered_closing_for_tickers(unique_tickers, start, end)
+            
             self.closing_values = closing_values.values
+            self.tickers = list(closing_values.columns)
 
+            
         check_for_incomplete_ticker_closing(self.tickers, self.closing_values)
 
         self.current_portfolio_close = current_portfolio_close
