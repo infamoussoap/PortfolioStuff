@@ -13,8 +13,8 @@ def get_buffered_closing_for_tickers(tickers, start, end, max_workers=100):
 
     closing_prices = pd.concat([history.loc[:, 'Close'] for history in buffered_ticker_history.values()], axis=1)
     closing_prices.columns = list(buffered_ticker_history.keys())
-
-    return closing_prices
+    
+    return closing_prices.loc[:, tickers].copy()
 
 
 def get_buffered_history_for_tickers(tickers, start, end, max_workers=100):
