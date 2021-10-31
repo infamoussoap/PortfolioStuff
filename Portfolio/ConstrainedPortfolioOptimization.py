@@ -56,7 +56,8 @@ class ConstrainedPortfolioOptimization:
 
     def get_best_ticker_combination(self, max_portfolio_value, epochs=1000,
                                     alpha=1.0, learning_rate=0.1, start_units=5, sample_period=1.0,
-                                    l1_reg=0.0, l2_reg=0.0, save_training_history=False):
+                                    l1_reg=0.0, l2_reg=0.0, early_stopping=False, tol=1e-7,
+                                    save_training_history=False):
         """ Returns the number of units per ticker that will minimise the cost function
             std^2 - alpha * mu
             where std is the standard deviation of the log-returns, and mu is the mean of the log-returns
@@ -79,6 +80,10 @@ class ConstrainedPortfolioOptimization:
                 L1-Regularization strength on the number of units
             l2_reg : float, optional
                 L2-Regularization strength on the number of units
+            early_stopping : bool, optional
+                Enables early stopping for gradient descent
+            tol : float, optional
+                The tolerance for early stopping
             save_training_history : bool, optional
                 If true then the weights on the tickers will be returned as well
         """
@@ -95,6 +100,7 @@ class ConstrainedPortfolioOptimization:
                                                    max_portfolio_value, self.cost_for_tickers,
                                                    epochs=epochs, alpha=alpha, learning_rate=learning_rate,
                                                    start_units=start_units, l1_reg=l1_reg, l2_reg=l2_reg,
+                                                   early_stopping=early_stopping, tol=tol,
                                                    save_training_history=save_training_history)
 
         return self._convert_results_to_df(results, save_training_history)
@@ -115,7 +121,8 @@ class ConstrainedPortfolioOptimization:
     @staticmethod
     def _projected_gradient_descent(current_portfolio_close, closing_values, max_portfolio_value,
                                     cost_for_tickers, epochs=1000, alpha=1.0, learning_rate=0.1, start_units=1,
-                                    l1_reg=0.0, l2_reg=0.0, save_training_history=False, e=1e-7):
+                                    l1_reg=0.0, l2_reg=0.0, early_stopping=False, tol=1e-7,
+                                    save_training_history=False, e=1e-7):
 
         CPO = ConstrainedPortfolioOptimization
 
@@ -125,9 +132,12 @@ class ConstrainedPortfolioOptimization:
         if save_training_history:
             history = np.zeros((epochs, num_of_tickers))
 
+        if early_stopping:
+            previous_ticker_units = current_ticker_units.copy()
+
         # Perform Projected Gradient Descent
         grad_squared = 0
-        for _ in range(epochs):
+        for epoch in range(epochs):
             gradient = CPO._get_ticker_unit_gradients(closing_values, current_portfolio_close,
                                                       current_ticker_units, alpha)
             l1_gradient = l1_reg * (current_ticker_units > 0).astype(int)
@@ -143,7 +153,13 @@ class ConstrainedPortfolioOptimization:
                                                                         max_portfolio_value,
                                                                         cost_for_tickers)
             if save_training_history:
-                history[_, :] = current_ticker_units
+                history[epoch, :] = current_ticker_units
+
+            if early_stopping:
+                if np.max(abs(previous_ticker_units - current_ticker_units)) < tol:
+                    history = history[:epoch + 1, :].copy()
+                    break
+                previous_ticker_units = current_ticker_units.copy()
 
         if save_training_history:
             return current_ticker_units, history
