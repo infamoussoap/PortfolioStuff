@@ -6,6 +6,7 @@ from .MultiThreadedTickerHistory import get_buffered_closing_for_tickers
 from .ValueChecks import check_for_incomplete_ticker_closing
 
 from datetime import date
+
 START_DATE = date(2017, 1, 5)
 END_DATE = date(2021, 6, 10)
 
@@ -43,11 +44,10 @@ class ConstrainedPortfolioOptimization:
             self.tickers = tickers
         else:
             closing_values = get_buffered_closing_for_tickers(unique_tickers, start, end)
-            
+
             self.closing_values = closing_values.values
             self.tickers = list(closing_values.columns)
 
-            
         check_for_incomplete_ticker_closing(self.tickers, self.closing_values)
 
         self.current_portfolio_close = current_portfolio_close
@@ -56,7 +56,7 @@ class ConstrainedPortfolioOptimization:
 
     def get_best_ticker_combination(self, max_portfolio_value, epochs=1000,
                                     alpha=1.0, learning_rate=0.1, start_units=5, sample_period=1.0,
-                                    l1_reg=0.0, save_training_history=False):
+                                    l1_reg=0.0, l2_reg=0.0, save_training_history=False):
         """ Returns the number of units per ticker that will minimise the cost function
             std^2 - alpha * mu
             where std is the standard deviation of the log-returns, and mu is the mean of the log-returns
@@ -77,6 +77,8 @@ class ConstrainedPortfolioOptimization:
                 The period of time to optimize the portfolio on
             l1_reg : float, optional
                 L1-Regularization strength on the number of units
+            l2_reg : float, optional
+                L2-Regularization strength on the number of units
             save_training_history : bool, optional
                 If true then the weights on the tickers will be returned as well
         """
@@ -92,7 +94,7 @@ class ConstrainedPortfolioOptimization:
         results = self._projected_gradient_descent(in_sample_portfolio_close, in_sample_closing_values,
                                                    max_portfolio_value, self.cost_for_tickers,
                                                    epochs=epochs, alpha=alpha, learning_rate=learning_rate,
-                                                   start_units=start_units, l1_reg=l1_reg,
+                                                   start_units=start_units, l1_reg=l1_reg, l2_reg=l2_reg,
                                                    save_training_history=save_training_history)
 
         return self._convert_results_to_df(results, save_training_history)
@@ -113,7 +115,7 @@ class ConstrainedPortfolioOptimization:
     @staticmethod
     def _projected_gradient_descent(current_portfolio_close, closing_values, max_portfolio_value,
                                     cost_for_tickers, epochs=1000, alpha=1.0, learning_rate=0.1, start_units=1,
-                                    l1_reg=0.0, save_training_history=False, e=1e-7):
+                                    l1_reg=0.0, l2_reg=0.0, save_training_history=False, e=1e-7):
 
         CPO = ConstrainedPortfolioOptimization
 
@@ -129,11 +131,12 @@ class ConstrainedPortfolioOptimization:
             gradient = CPO._get_ticker_unit_gradients(closing_values, current_portfolio_close,
                                                       current_ticker_units, alpha)
             l1_gradient = l1_reg * (current_ticker_units > 0).astype(int)
+            l2_gradient = l2_reg * current_ticker_units
 
             # RMSprop - Normal gradient descent tends to take a very long time, can probably
             # use Adam for quicker convergence
             grad_squared = 0.9 * grad_squared + 0.1 * gradient * gradient
-            current_ticker_units -= learning_rate * (gradient / (np.sqrt(grad_squared) + e) + l1_gradient)
+            current_ticker_units -= learning_rate * (gradient / (np.sqrt(grad_squared) + e) + l1_gradient + l2_gradient)
 
             # Project back into space
             current_ticker_units = CPO._project_weights_into_constraint(current_ticker_units,
