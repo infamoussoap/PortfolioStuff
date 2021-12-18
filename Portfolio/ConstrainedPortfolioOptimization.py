@@ -1,9 +1,13 @@
+import pyximport
+pyximport.install(language_level=3)
+
 import numpy as np
 import pandas as pd
 import warnings
 
 from .MultiThreadedTickerHistory import get_buffered_closing_for_tickers
 from .ValueChecks import check_for_incomplete_ticker_closing
+from .CythonizedFunctions import cython_get_ticker_unit_gradients
 
 from datetime import date
 
@@ -22,7 +26,7 @@ class ConstrainedPortfolioOptimization:
     """
 
     def __init__(self, tickers, closing_values=None, start=START_DATE, end=END_DATE,
-                 current_portfolio_close=None):
+                 current_portfolio_close=None, use_cython=False):
         """ Set closing prices of tickers / current portfolio
 
             Parameters
@@ -53,6 +57,8 @@ class ConstrainedPortfolioOptimization:
         self.current_portfolio_close = current_portfolio_close
 
         self.cost_for_tickers = self.closing_values[-1]
+
+        self.use_cython = use_cython
 
     def get_best_ticker_combination(self, max_portfolio_value, epochs=1000,
                                     alpha=1.0, learning_rate=0.1, start_units=5, sample_period=1.0,
@@ -118,8 +124,8 @@ class ConstrainedPortfolioOptimization:
             return ticker_combination_as_df, history_as_df
         return ticker_combination_as_df
 
-    @staticmethod
-    def _projected_gradient_descent(current_portfolio_close, closing_values, max_portfolio_value,
+
+    def _projected_gradient_descent(self, current_portfolio_close, closing_values, max_portfolio_value,
                                     cost_for_tickers, epochs=1000, alpha=1.0, learning_rate=0.1, start_units=1,
                                     l1_reg=0.0, l2_reg=0.0, early_stopping=False, tol=1e-7,
                                     save_training_history=False, e=1e-7):
@@ -138,8 +144,8 @@ class ConstrainedPortfolioOptimization:
         # Perform Projected Gradient Descent
         grad_squared = 0
         for epoch in range(epochs):
-            gradient = CPO._get_ticker_unit_gradients(closing_values, current_portfolio_close,
-                                                      current_ticker_units, alpha)
+            gradient = self._get_ticker_unit_gradients(closing_values, current_portfolio_close,
+                                                       current_ticker_units, alpha)
             l1_gradient = l1_reg * (current_ticker_units > 0).astype(int)
             l2_gradient = l2_reg * current_ticker_units
 
@@ -165,9 +171,16 @@ class ConstrainedPortfolioOptimization:
             return current_ticker_units, history
         return current_ticker_units
 
-    @staticmethod
-    def _get_ticker_unit_gradients(closing_values, current_portfolio_close, current_ticker_units,
-                                   alpha):
+
+    def _get_ticker_unit_gradients(self, closing_values, current_portfolio_close,
+                                   current_ticker_units, alpha):
+        if self.use_cython:
+            if current_portfolio_close == 0:
+                current_portfolio_close = np.zeros(len(closing_values), dtype=np.float64)
+
+            gradient = cython_get_ticker_unit_gradients(closing_values, current_portfolio_close,
+                                                        current_ticker_units, alpha)
+            return np.asarray(gradient)
 
         combined_close = np.sum(closing_values * current_ticker_units, axis=1) \
                          + current_portfolio_close
