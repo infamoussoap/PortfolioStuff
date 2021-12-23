@@ -1,1 +1,1 @@
-from CythonCPO import CythonCPO
+from .CythonCPO import CythonCPO

@@ -8,8 +8,8 @@ import warnings
 from libc.math cimport sqrt
 from cython.parallel cimport prange
 
-cimport utils
-from CPOGradients cimport l1_grad, l2_grad, ticker_unit_gradients
+from . cimport utils
+from .CPOGradients cimport l1_grad, l2_grad, ticker_unit_gradients
 
 
 cdef class RMSProp:
@@ -39,6 +39,8 @@ cdef class CythonCPO:
     cdef:
         double alpha, learning_rate, l1_reg, l2_reg
         bint early_stopping, save_training_history
+        readonly list _history
+        double[:] previous_ticker_units
 
     def __init__(self, double alpha=1.0, double learning_rate=0.1, double l1_reg=0.0, double l2_reg=0.0,
                  bint early_stopping=False, bint save_training_history=False):
@@ -51,6 +53,9 @@ cdef class CythonCPO:
         self.early_stopping = early_stopping
         self.save_training_history = save_training_history
 
+        self._history = []
+        self.previous_ticker_units = None
+
 
     def projected_gradient_descent(self, double[:] current_portfolio_close, double[:, :] closing_values,
                                    double max_portfolio_value, double[:] cost_for_tickers,
@@ -62,6 +67,7 @@ cdef class CythonCPO:
             RMSProp optimizer = RMSProp(num_of_tickers, self.learning_rate)
             double[:] gradient = np.zeros(num_of_tickers, dtype=np.float64)
             double[:] step = np.zeros(num_of_tickers, dtype=np.float64)
+            bint continue_execution
 
         for epoch in range(epochs):
             gradient = self.get_gradient(closing_values, current_portfolio_close, current_ticker_units)
@@ -73,6 +79,11 @@ cdef class CythonCPO:
             current_ticker_units = self.project_weights_into_constraint(current_ticker_units,
                                                                         max_portfolio_value,
                                                                         cost_for_tickers)
+
+            continue_execution = self.callbacks(current_ticker_units)
+            if not continue_execution:
+                break
+
         return current_ticker_units
 
 
@@ -172,5 +183,27 @@ cdef class CythonCPO:
 
         return utils.subtract(y, utils.scalar_mul(c, a))
 
-    def callbacks(self):
-        pass
+    cdef bint callbacks(self, current_ticker_units):
+        if self.save_training_history:
+            self.save_history_callback(current_ticker_units)
+
+        if self.early_stopping:
+            return self.early_stopping_callback(current_ticker_units)
+
+        return True
+
+    cdef save_history_callback(self, double[:] current_ticker_units):
+        self._history.append(current_ticker_units)
+
+    cdef early_stopping_callback(self, double[:] current_ticker_units):
+        if self.previous_ticker_units is None:
+            self.previous_ticker_units = current_ticker_units
+            return True
+
+        difference = max(utils.abs(utils.subtract(current_ticker_units, self.previous_ticker_units)))
+        self.previous_ticker_units = current_ticker_units
+        return difference > 1e-7
+
+    @property
+    def history(self):
+        return np.asarray(self._history)
