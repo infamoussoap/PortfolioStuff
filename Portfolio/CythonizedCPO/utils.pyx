@@ -79,3 +79,16 @@ cdef double[:] hamard_prod(double[:] a, double[:] b):
     for i in prange(n, nogil=True):
         out[i] = a[i] * b[i]
     return out
+
+
+cdef double[:] abs(double[:] a):
+    cdef:
+        int n = a.shape[0]
+        int i
+        double val
+        double[:] out = np.zeros(n, dtype=np.float64)
+
+    for i in prange(n, nogil=True):
+        val = a[i]
+        out[i] = val if val > 0.0 else -val
+    return out

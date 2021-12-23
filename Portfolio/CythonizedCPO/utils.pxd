@@ -13,3 +13,5 @@ cdef double[:] add(double[:] a, double[:] b)
 cdef double[:] scalar_mul(double a, double[:] b)
 
 cdef double[:] hamard_prod(double[:] a, double[:] b)
+
+cdef double[:] abs(double[:] a)
