@@ -1,13 +1,9 @@
-import pyximport
-pyximport.install(language_level=3)
-
 import numpy as np
 import pandas as pd
 import warnings
 
 from .MultiThreadedTickerHistory import get_buffered_closing_for_tickers
 from .ValueChecks import check_for_incomplete_ticker_closing
-from .CythonizedFunctions import cython_get_ticker_unit_gradients
 
 from datetime import date
 
@@ -26,7 +22,7 @@ class ConstrainedPortfolioOptimization:
     """
 
     def __init__(self, tickers, closing_values=None, start=START_DATE, end=END_DATE,
-                 current_portfolio_close=None, use_cython=False):
+                 current_portfolio_close=None):
         """ Set closing prices of tickers / current portfolio
 
             Parameters
@@ -57,8 +53,6 @@ class ConstrainedPortfolioOptimization:
         self.current_portfolio_close = current_portfolio_close
 
         self.cost_for_tickers = self.closing_values[-1]
-
-        self.use_cython = use_cython
 
     def get_best_ticker_combination(self, max_portfolio_value, epochs=1000,
                                     alpha=1.0, learning_rate=0.1, start_units=5, sample_period=1.0,
@@ -174,14 +168,6 @@ class ConstrainedPortfolioOptimization:
 
     def _get_ticker_unit_gradients(self, closing_values, current_portfolio_close,
                                    current_ticker_units, alpha):
-        if self.use_cython:
-            if current_portfolio_close == 0:
-                current_portfolio_close = np.zeros(len(closing_values), dtype=np.float64)
-
-            gradient = cython_get_ticker_unit_gradients(closing_values, current_portfolio_close,
-                                                        current_ticker_units, alpha)
-            return np.asarray(gradient)
-
         combined_close = np.sum(closing_values * current_ticker_units, axis=1) \
                          + current_portfolio_close
         close_ratio = (closing_values / combined_close[:, None])
