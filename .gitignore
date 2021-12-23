@@ -1,2 +1,8 @@
 ignore_files
 __pycache__
+
+build
+
+# C extensions
+*.so
+*.c
